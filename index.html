@@ -165,6 +165,7 @@ kbd {
   margin: 0; padding: 8px 8px 12px; min-height: 1.1em; max-width: 100%;
   font: 700 clamp(1.4rem, 3.4vh, 2rem)/1.05 var(--font-hand); color: var(--ink); text-align: center; text-wrap: balance;
 }
+.caption-sub { display: block; margin-top: 3px; font-size: .74em; color: var(--muted); }
 .gift-nav { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
 .gift-nav .icon-btn { background: rgba(255, 247, 236, .14); }
 .dots { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; max-width: 60vw; }
@@ -383,6 +384,14 @@ const Sound = (() => {
     bridge() { if (!ok()) return; const t = now(); [72, 76, 79, 84, 88].forEach((m, i) => tone('sine', midi(m), t + i * 0.06, 0.3, 0.1, sfx)); },
     pop() { if (!ok()) return; const t = now(); tone('sine', 700, t, 0.12, 0.25, sfx, 140); noise(t, 0.08, 0.15, 'highpass', 2500, null, 0.7, sfx); },
     whoosh() { if (!ok()) return; noise(now(), 0.9, 0.3, 'bandpass', 900, 260, 1.2, sfx, 0.12); },
+    coins(n = 12, spread = 1.3) {
+      if (!ok()) return; const t0 = now();
+      for (let i = 0; i < n; i++) {
+        const at = t0 + (i === 0 ? 0 : Math.random() * spread), k = rand(0.94, 1.08);
+        tone('square', 988 * k, at, 0.06, 0.03, sfx);
+        tone('square', 1319 * k, at + 0.06, 0.22, 0.03, sfx);
+      }
+    },
     chime() { if (!ok()) return; const t = now(); [79, 83, 86, 91].forEach((m, i) => tone('sine', midi(m), t + i * 0.08, 0.7, 0.1, sfx)); },
     fanfare() {
       if (!ok()) return; const t = now();
@@ -846,6 +855,50 @@ function drawCake(c, x, y, s, t, candles, lit, smoke) {
       }
     }
   }
+  c.restore();
+}
+
+// Winking smiley sending a heart. (x, y) = center, r = radius.
+function drawWinky(c, x, y, r, t, wink, tilt) {
+  c.save(); c.translate(x, y); c.rotate(tilt || 0);
+  const g = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+  g.addColorStop(0, '#fff1a1'); g.addColorStop(0.55, '#ffd23f'); g.addColorStop(1, '#f5a623');
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(255,111,145,.45)';
+  c.beginPath(); c.ellipse(-r * 0.56, r * 0.18, r * 0.17, r * 0.11, 0, 0, TAU); c.fill();
+  c.beginPath(); c.ellipse(r * 0.56, r * 0.18, r * 0.17, r * 0.11, 0, 0, TAU); c.fill();
+  const eye = (ex) => {
+    c.fillStyle = '#4a2a12'; c.beginPath(); c.ellipse(ex, -r * 0.2, r * 0.11, r * 0.17, 0, 0, TAU); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(ex + r * 0.03, -r * 0.27, r * 0.04, 0, TAU); c.fill();
+  };
+  eye(-r * 0.33);
+  if (wink) {
+    c.strokeStyle = '#4a2a12'; c.lineWidth = r * 0.08; c.lineCap = 'round';
+    c.beginPath(); c.arc(r * 0.33, -r * 0.1, r * 0.15, 1.15 * Math.PI, 1.85 * Math.PI); c.stroke();
+  } else eye(r * 0.33);
+  // grin with a tongue
+  c.beginPath(); c.moveTo(-r * 0.46, r * 0.12); c.quadraticCurveTo(0, r * 0.82, r * 0.46, r * 0.12); c.quadraticCurveTo(0, r * 0.32, -r * 0.46, r * 0.12); c.closePath();
+  c.fillStyle = '#6b2a17'; c.fill();
+  c.save(); c.clip(); c.fillStyle = '#ff6f91'; c.beginPath(); c.ellipse(r * 0.06, r * 0.46, r * 0.18, r * 0.09, 0, 0, TAU); c.fill(); c.restore();
+  // heart by the mouth, like a blown kiss
+  const pul = 1 + Math.sin(t * 7) * 0.08;
+  c.save(); c.translate(r * 0.86, r * 0.5); c.rotate(0.28);
+  heartPath(c, 0, 0, r * 0.36 * pul);
+  c.lineWidth = r * 0.06; c.strokeStyle = '#ffffff'; c.lineJoin = 'round'; c.stroke();
+  c.fillStyle = '#ff3f7f'; c.fill();
+  c.restore();
+  c.restore();
+}
+
+function drawCoin(c, x, y, r, ph) {
+  const sx = Math.max(0.12, Math.abs(Math.cos(ph)));
+  c.save(); c.translate(x, y); c.scale(sx, 1);
+  const g = c.createLinearGradient(-r, -r, r, r);
+  g.addColorStop(0, '#fff3a6'); g.addColorStop(0.5, '#ffc928'); g.addColorStop(1, '#e89a00');
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+  c.lineWidth = r * 0.14; c.strokeStyle = '#c98400'; c.stroke();
+  c.lineWidth = r * 0.1; c.strokeStyle = 'rgba(255,236,150,.9)'; c.beginPath(); c.arc(0, 0, r * 0.62, 0, TAU); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.75)'; rr(c, -r * 0.12, -r * 0.42, r * 0.24, r * 0.84, r * 0.12); c.fill();
   c.restore();
 }
 
@@ -1774,7 +1827,7 @@ const Gift = (() => {
   /* ---- animated cards (used when there are no photos, and the cake at the end) ---- */
   const SCENES = {
     flowers: {
-      caption: 'Это тебе! Букет с любовью',
+      caption: 'Это тебе! Букет с любовью!\nОн скоро приедет к твоей двери',
       dur: 6,
       init(s) { s.hearts = []; s.lastSpawn = -1; Sound.chime(); },
       draw(c, w, h, t, s) {
@@ -1837,28 +1890,58 @@ const Gift = (() => {
       },
     },
     gift: {
-      caption: 'Подарок! Нажми, чтобы открыть',
+      caption: 'Подарок! Нажми, чтобы открыть.',
       dur: null,
-      init(s) { s.opened = null; s.conf = []; },
+      init(s) { s.opened = null; s.conf = []; s.coins = []; s.spawn = 0; s.hearts = []; s.lastT = null; },
       tap(s, t) {
         if (s.opened != null) return;
-        s.opened = t; Sound.pop(); setTimeout(() => Sound.chime(), 150);
-        for (let i = 0; i < 90; i++) s.conf.push({ x: 0, y: 0, vx: rand(-260, 260), vy: rand(-520, -200), r: rand(0, TAU), vr: rand(-8, 8), c: pick(['#ff4f8b', '#ffd44d', '#5fd0ff', '#6ee07a', '#9b7bff']) });
+        s.opened = t; Sound.pop(); Sound.coins(14, 1.4); setTimeout(() => Sound.chime(), 500);
+        for (let i = 0; i < 60; i++) s.conf.push({ x: 0, y: 0, vx: rand(-260, 260), vy: rand(-520, -200), r: rand(0, TAU), vr: rand(-8, 8), c: pick(['#ff4f8b', '#ffd44d', '#5fd0ff', '#6ee07a', '#9b7bff']) });
         setCaption('Ты у нас самая лучшая!');
-        clearTimeout(autoT); autoT = setTimeout(() => next(), 4200);
+        clearTimeout(autoT); autoT = setTimeout(() => next(), 6500);
       },
       draw(c, w, h, t, s) {
         const g = c.createRadialGradient(w / 2, h * 0.55, 10, w / 2, h * 0.55, w * 0.7); g.addColorStop(0, '#fff2c6'); g.addColorStop(1, '#ffc9dc'); c.fillStyle = g; c.fillRect(0, 0, w, h);
         const bx = w / 2, by = h * 0.86;
         const shake = s.opened == null ? Math.sin(t * 18) * 3 * (Math.sin(t * 2) > 0.3 ? 1 : 0) : 0;
+        const dt = s.lastT == null ? 0 : clamp(t - s.lastT, 0, 0.05);
+        s.lastT = t;
         if (s.opened != null) {
           const age = t - s.opened;
-          // heart rising
-          const hy = by - 150 - Math.min(age, 1) * 90;
-          const gl = c.createRadialGradient(bx, hy, 0, bx, hy, 120); gl.addColorStop(0, 'rgba(255,90,140,.45)'); gl.addColorStop(1, 'rgba(255,90,140,0)');
-          c.fillStyle = gl; c.beginPath(); c.arc(bx, hy, 120, 0, TAU); c.fill();
-          c.fillStyle = '#ff3f7f'; heartPath(c, bx, hy, 54 * (1 + Math.sin(t * 6) * 0.05) * Math.min(1, age * 2)); c.fill();
+          // winking smiley rises out of the box (drawn before the box, so the box hides its lower part)
+          const k = Math.min(1, age / 0.7);
+          const pop = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2); // ease-out-back
+          const sy = by - 110 - pop * 158 + (age > 0.7 ? Math.sin(t * 2.2) * 5 : 0);
+          const gl = c.createRadialGradient(bx, sy, 0, bx, sy, 140); gl.addColorStop(0, 'rgba(255,214,90,.55)'); gl.addColorStop(1, 'rgba(255,150,170,0)');
+          c.fillStyle = gl; c.beginPath(); c.arc(bx, sy, 140, 0, TAU); c.fill();
+          const wink = age > 0.7 && ((age - 0.7) % 2.0) < 1.4;
+          drawWinky(c, bx, sy, 68, t, wink, wink ? -0.12 : 0.04);
+          // little hearts drifting up from the kiss
+          if (age > 0.8 && (s.hearts.length === 0 || t - s.hearts[s.hearts.length - 1].born > 0.55)) s.hearts.push({ x: bx + 68 * 0.86, y: sy + 68 * 0.5, born: t, ph: rand(0, TAU) });
+          s.hearts = s.hearts.filter((q) => t - q.born < 2.2);
+          s.hearts.forEach((q) => {
+            const a = t - q.born;
+            c.globalAlpha = 1 - a / 2.2;
+            c.fillStyle = '#ff4f8b'; heartPath(c, q.x + 18 * a + Math.sin(a * 4 + q.ph) * 8, q.y - 70 * a, 9 + a * 3); c.fill();
+          });
+          c.globalAlpha = 1;
           drawGiftBox(c, bx, by, 190, 150, '#ff4f8b', '#ffd44d', true);
+          // coins: a fountain for the first 1.4 s, then they bounce and settle on the floor
+          if (age < 1.4) {
+            s.spawn += dt * 34;
+            while (s.spawn >= 1 && s.coins.length < 50) { s.spawn -= 1; s.coins.push({ x: bx + rand(-60, 60), y: by - 150, vx: rand(-230, 230), vy: rand(-650, -380), ph: rand(0, TAU), spin: rand(9, 15), r: rand(12, 16), rest: false }); }
+          }
+          s.coins.forEach((q) => {
+            if (!q.rest) {
+              q.vy += 1100 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.ph += q.spin * dt;
+              if (q.x < q.r || q.x > w - q.r) { q.x = clamp(q.x, q.r, w - q.r); q.vx = -q.vx * 0.5; }
+              if (q.y > by - q.r && q.vy > 0) {
+                q.y = by - q.r; q.vy = -q.vy * 0.42; q.vx *= 0.6; q.spin *= 0.6;
+                if (Math.abs(q.vy) < 80) { q.vy = 0; q.rest = true; }
+              }
+            } else q.ph = lerp(q.ph, Math.round(q.ph / Math.PI) * Math.PI, 0.15);
+            drawCoin(c, q.x, q.y, q.r, q.ph);
+          });
           // flying lid
           c.save(); c.translate(bx + age * 240, by - 190 - age * 260 + age * age * 420); c.rotate(age * 5);
           c.fillStyle = '#ff4f8b'; rr(c, -106, -18, 212, 38, 4); c.fill(); c.fillStyle = '#ffd44d'; c.fillRect(-17, -18, 34, 38);
@@ -1916,8 +1999,15 @@ const Gift = (() => {
     },
   };
 
-  let capEl = null;
-  function setCaption(text) { if (capEl) capEl.textContent = text || ''; }
+  let capEl = null, sceneExtra = 0;
+  // A caption may have a second, smaller line after "\n".
+  function fillCaption(el, text) {
+    el.textContent = '';
+    const [main, ...rest] = String(text || '').split('\n');
+    el.append(main);
+    if (rest.length) { const sub = document.createElement('span'); sub.className = 'caption-sub'; sub.textContent = rest.join(' '); el.appendChild(sub); }
+  }
+  function setCaption(text) { if (capEl) fillCaption(capEl, text); }
 
   function buildSlides(media) {
     const out = media.map((m, i) => ({ ...m, caption: CONFIG.captions[i] || '' }));
@@ -1928,7 +2018,7 @@ const Gift = (() => {
 
   function sceneSize() {
     const maxW = Math.min(view.cssW * 0.84, 900);
-    const maxH = view.cssH - (view.cssH < 520 ? 150 : 235);
+    const maxH = view.cssH - (view.cssH < 520 ? 150 : 235) - sceneExtra;
     let w = maxW, h = w * 0.75;
     if (h > maxH) { h = maxH; w = h / 0.75; }
     return [Math.max(160, Math.floor(w)), Math.max(120, Math.floor(h))];
@@ -1972,11 +2062,11 @@ const Gift = (() => {
       img.onerror = () => { if (current === sl) { clearTimeout(autoT); autoT = setTimeout(() => next(), 300); } };
       img.src = sl.src;
       box.appendChild(img);
-      cap.textContent = sl.caption;
+      fillCaption(cap, sl.caption);
       autoT = setTimeout(() => next(), dur * 1000);
     } else if (sl.kind === 'video') {
       box.appendChild(video);
-      cap.textContent = sl.caption;
+      fillCaption(cap, sl.caption);
       Music.duck(true);
       Sound.setFireworkVolume(0);
       video.muted = Sound.muted;
@@ -1998,6 +2088,7 @@ const Gift = (() => {
     } else {
       const sc = SCENES[sl.scene];
       const cv = document.createElement('canvas');
+      sceneExtra = sc.caption.includes('\n') ? 26 : 0;
       const [w, h] = sceneSize();
       cv.style.width = w + 'px'; cv.style.height = h + 'px';
       cv.width = Math.round(w * Math.min(2, window.devicePixelRatio || 1)); cv.height = Math.round(h * Math.min(2, window.devicePixelRatio || 1));
@@ -2005,7 +2096,7 @@ const Gift = (() => {
       sceneCanvas = cv;
       sceneState = { t: 0, sc };
       sc.init(sceneState);
-      cap.textContent = sc.caption;
+      fillCaption(cap, sc.caption);
       if (sc.tap) {
         cv.style.cursor = 'pointer';
         cv.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Sound.init(); if (sceneState && sceneState.sc === sc) sc.tap(sceneState, sceneState.t); });
